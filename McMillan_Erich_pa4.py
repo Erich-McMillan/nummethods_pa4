@@ -53,6 +53,7 @@ class kesselRun:
 		#print(self.acc)
 	def updateTime(self, deltat):
 		self.time += deltat
+		print(self.time)
 
 	def stepRungeKuttaIntegration(self, blackholes, runParameters):
 		#
@@ -92,7 +93,7 @@ class blackHole:
 	def __init__(self, position, mass):
 		self.pos = np.array(position)
 		#self.mass = mass
-		self.mass = 5.2E+15
+		self.mass = 5.2E+11
 
 	# calculates the force on the ship due to blackHole
 	def calculateForce(self, shiplocation, shipmass):
@@ -108,13 +109,13 @@ class blackHole:
 		rmagnitude = np.linalg.norm(rvector)
 
 		# determine force of gravity along each axis
-		print(self.mass)
+		#print(self.mass)
 		gravity = 6.67408E-11
 		numerator = np.multiply(self.mass, shipmass)
 		numerator = np.multiply(numerator, gravity)
 		denomiator = np.power(rmagnitude, 3)
 		gravityvector = np.multiply(rvector,  np.divide(numerator, denomiator))
-		print(gravityvector)
+		#print(gravityvector)
 		return gravityvector
 
 
@@ -179,7 +180,7 @@ def simulateKesselRun( blackholes, runParameters ):
 
 ## 	Main code				##
 runParameters = runParameters(minX = -5, maxX = 5, startY = -10, finalY = 10, avgVelAngle = math.pi/2.0,
-	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 4, resolution = .00005, maxTime = 1000, shipMass = 5)
+	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 4, resolution = .00005, maxTime = 10, shipMass = 5)
 # currKRun = generateInitialConfiguration(runParameters)
 # blk = blackHole([-4,1], 10)
 blackholes = loadBlackHoles("testblackholes.txt")
