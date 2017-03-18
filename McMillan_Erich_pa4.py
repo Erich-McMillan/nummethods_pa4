@@ -77,15 +77,19 @@ def loadBlackHoles( filename ):
 	# loads the information about the locations and masses of the blackholes from the specified text file
 	# the data shall be in the configuration x\ty\tmass\n
 
+	# declare blackhole array
+	blackholes = []
+
 	# open file
 	bhfile = open(filename, "r")
 
 	# load file info
 	for line in bhfile:
-		print(line)
+		values = line.split()
+		blackholes.append(blackHole([values[0],values[1]], values[2]))
 
 	# clean-up/return
-	return
+	return blackholes
 def generateInitialConfiguration( runParameters ):
 	# new instance of kesselRun to store starting configuration
 	newKRun = kesselRun()
@@ -108,30 +112,30 @@ def generateInitialConfiguration( runParameters ):
 	# clean-up/return
 	return newKRun
 
-# def stepRungeKuttaIntegration( currKesselRun, blackholes, runParameters):
-# 	# Definition
-#
-# 	# determine force upon the ship
-#
-#
-# 	# check if force has exceeded specified max if so terminate run
-# 	currKesselRun.terminated = forceonship[0] > runParameters.maxForce ? True : False
-#
-# 	# update the ship acceleration
-#
-# 	# update the ship velocity
-#
-# 	# update the ship position
-#
-# 	# check if ship's y is greater than finalY if so then sucessful run
-# 	currKesselRun.sucess = currKesselRun.pos[1] > runParameters.finalY ? True, False
-#
-# 	# increment ship time by resolution
-# 	currKesselRun.incTime(runParameters.resolution)
-#
-# 	# check if run time has exceeded maxtime if so terminate run
-# 	currKesselRun.terminated = currKesselRun.time > runParameters.maxtime ? True, False
-#
+def stepRungeKuttaIntegration( currKesselRun, blackholes, runParameters):
+	# Definition
+
+	# determine force upon the ship
+
+
+	# check if force has exceeded specified max if so terminate run
+	currKesselRun.terminated = forceonship[0] > runParameters.maxForce ? True : False
+
+	# update the ship acceleration
+
+	# update the ship velocity
+
+	# update the ship position
+
+	# check if ship's y is greater than finalY if so then sucessful run
+	currKesselRun.sucess = currKesselRun.pos[1] > runParameters.finalY ? True, False
+
+	# increment ship time by resolution
+	currKesselRun.incTime(runParameters.resolution)
+
+	# check if run time has exceeded maxtime if so terminate run
+	currKesselRun.terminated = currKesselRun.time > runParameters.maxtime ? True, False
+
 def simulateKesselRun( blackholes, runParameters ):
 	# Definition: Will step through the kessel run specified after generatiing an intial configuration
 	# Inputs: blackholes: an array of blackHole() objects containing the positions and masses of the
@@ -144,7 +148,7 @@ def simulateKesselRun( blackholes, runParameters ):
 	currKesselRun = generateInitialConfiguration(runParameters)
 
 	# while max time has not elapsed continue simulation
-	while(!currKesselRun.terminated && !currKesselRun.sucess):
+	while(currKesselRun.terminated == False and currKesselRun.sucess == False):
 		stepRungeKuttaIntegration(currKesselRun, blackholes, runParameters)
 
 	# return kessel run object
