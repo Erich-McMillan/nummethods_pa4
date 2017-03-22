@@ -14,6 +14,7 @@
 
 ##	Import science modules	##
 import numpy as np
+import scipy.io as sio
 import matplotlib.pyplot as plt
 import math as math
 from collections import namedtuple
@@ -41,32 +42,31 @@ class kesselRun:
 		self.mass = mass
 	def updatePosition(self, position):
 		self.path.append(position)
-		#np.append(self.path, np.array(position))
-		self.pos = np.array(position)
-		#print(self.path)
-		#print(self.pos)
+		self.pos = position
+		# print("position")
+		# print(self.pos)
 	def updateVelocity(self, velocity):
-		self.vel = np.array(velocity)
-		#print(self.vel)
+		self.vel = velocity
+		# print("velocity")
+		# print(self.vel)
 	def updateAcceleration(self, acceleration):
-		self.acc = np.array(acceleration)
-		#print(self.acc)
+		self.acc = acceleration
+		# print("acceleration")
+		# print(self.acc)
 	def updateTime(self, deltat):
 		self.time += deltat
-		print(self.time)
-
 	def stepRungeKuttaIntegration(self, blackholes, runParameters):
-		#
+		# Definition:
 
 		# declare variables
-		forceonship = np.array([0,0])
+		forceonship = [0,0]
 
 		# determine force upon the ship
 		for currentbh in blackholes:
 			forceonship = np.add(forceonship, currentbh.calculateForce(self.pos, self.mass))
 
 		# check if force has exceeded specified max if so terminate run
-		self.terminated = (forceonship[0] > runParameters.maxForce) if True else False
+		self.terminated = (np.linalg.norm(forceonship) > runParameters.maxForce) if True else self.terminated
 
 		# update acceleration
 		self.updateAcceleration(np.divide(forceonship, self.mass))
@@ -81,20 +81,23 @@ class kesselRun:
 		self.updateTime(runParameters.resolution)
 
 		# check if ship's y is greater than finalY if so then sucessful run
-		self.success = (self.pos[1] > runParameters.finalY) if True else False
+		self.success = (self.pos[1] > runParameters.finalY) if True else self.sucess
 
+		# print(self.pos[0])
+		# print((self.pos[0] < -10.0 or self.pos[0] > 10.0))
+		# check if ship is outside the bounds
+		self.terminated = (self.pos[0] < -10.0 or self.pos[0] > 10.0) if True else self.terminated
+		# print(self.terminated)
 		# check if run time has exceeded maxtime if so terminate run
-		self.terminated = (self.time > runParameters.maxTime) if True else False
-
-
+		# self.terminated = (self.time > runParameters.maxTime) if True else self.terminated
+		# print(self.terminated)
 # contains the information about the blackhole each blackhole shall have its own object
 class blackHole:
 	# blackHole constructor
 	def __init__(self, position, mass):
-		self.pos = np.array(position)
-		#self.mass = mass
-		self.mass = 5.2E+11
-
+		self.pos = position
+		# self.mass = mass
+		self.mass = 5.25E+10
 	# calculates the force on the ship due to blackHole
 	def calculateForce(self, shiplocation, shipmass):
 		# returns the x and y components of the gravitation force due to the blackhole on the ship
@@ -102,40 +105,36 @@ class blackHole:
 		# the function will return the x and y components of the gravitational force on the ship [fx,fy]
 
 		# find the vector between the ship and the blackhole pointing toward the blackhole
-		#print(np.array(map(float, self.pos))
-		#print(self.pos)
-		#print(shiplocation)
-		rvector = np.subtract(self.pos, shiplocation)
+		rvector = np.subtract(self.pos[0], shiplocation)
+		# print(rvector)
 		rmagnitude = np.linalg.norm(rvector)
 
 		# determine force of gravity along each axis
-		#print(self.mass)
 		gravity = 6.67408E-11
 		numerator = np.multiply(self.mass, shipmass)
 		numerator = np.multiply(numerator, gravity)
-		denomiator = np.power(rmagnitude, 3)
-		gravityvector = np.multiply(rvector,  np.divide(numerator, denomiator))
-		#print(gravityvector)
+		denominator = np.power(rmagnitude, 3)
+		gravityvector = np.multiply(rvector,  np.divide(numerator, denominator))
 		return gravityvector
-
 
 ##	Function declarations	##
 def loadBlackHoles( filename ):
-	# loads the information about the locations and masses of the blackholes from the specified text file
-	# the data shall be in the configuration x\ty\tmass\n
+	# loads the information about the locations and masses of the blackholes from the specified .mat file
+	# the file shall contain 3 arrays 'hX','hY','hM' where hX is the x position, hY is the y position and
+	# hM is the mass of the blackhole
 
 	# declare blackhole array
 	blackholes = []
 
 	# open file
-	bhfile = open(filename, "r")
+	bhinfo = sio.loadmat(filename)
+	hX = bhinfo['hX']
+	hY = bhinfo['hY']
+	hM = bhinfo['hM']
 
 	# load file info
-	for line in bhfile:
-		#values = line.split()
-		values = np.array(line.split(), dtype='|S4')
-		values = values.astype(np.float)
-		blackholes.append(blackHole([values[0],values[1]], values[2]))
+	for i in range(0,hX.size):
+		blackholes.append(blackHole([hX[i], hY[i]], hM[i]));
 
 	# clean-up/return
 	return blackholes
@@ -153,7 +152,14 @@ def generateInitialConfiguration( runParameters ):
 
 	# add starting info to the new kessel run
 	newKRun.updatePosition([x,y])
-	newKRun.updateVelocity([vmag, vang])
+	newKRun.updateVelocity([vmag*np.cos(vang), vmag*np.sin(vang)])
+	print(x)
+	print(y)
+	print(vmag)
+	print(vang)
+	print()
+	print(newKRun.pos)
+	print(newKRun.vel)
 
 	# set ship mass
 	newKRun.setMass(runParameters.shipMass)
@@ -180,10 +186,8 @@ def simulateKesselRun( blackholes, runParameters ):
 
 ## 	Main code				##
 runParameters = runParameters(minX = -5, maxX = 5, startY = -10, finalY = 10, avgVelAngle = math.pi/2.0,
-	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 4, resolution = .00005, maxTime = 10, shipMass = 5)
-# currKRun = generateInitialConfiguration(runParameters)
-# blk = blackHole([-4,1], 10)
-blackholes = loadBlackHoles("testblackholes.txt")
+	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 4, resolution = .005, maxTime = 5, shipMass = 5)
+blackholes = loadBlackHoles("cluster1.mat")
 currKRun = simulateKesselRun(blackholes, runParameters)
 print(currKRun.terminated)
 print(currKRun.success)
@@ -200,6 +204,11 @@ for p in currKRun.path:
 	outfile.write(str(p[1]))
 	outfile.write("\n")
 
-plt.plot(x, y)
+
+# print(x)
+plt.plot(x, y, color = 'blue')
+
+for b in blackholes:
+	plt.plot(b.pos[0], b.pos[1], color = 'red', marker = "H", ms = 5)
 plt.savefig("output.png", dpi=96);
-#print(currKRun.path)
+# print(currKRun.path)
