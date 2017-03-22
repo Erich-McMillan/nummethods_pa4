@@ -65,8 +65,12 @@ class kesselRun:
 		for currentbh in blackholes:
 			forceonship = np.add(forceonship, currentbh.calculateForce(self.pos, self.mass))
 
+		# print(forceonship)
+		# print(np.linalg.norm(forceonship))
+		print((np.linalg.norm(forceonship) > runParameters.maxForce))
 		# check if force has exceeded specified max if so terminate run
 		self.terminated = (np.linalg.norm(forceonship) > runParameters.maxForce) if True else self.terminated
+		print(self.terminated)
 
 		# update acceleration
 		self.updateAcceleration(np.divide(forceonship, self.mass))
@@ -97,7 +101,7 @@ class blackHole:
 	def __init__(self, position, mass):
 		self.pos = position
 		# self.mass = mass
-		self.mass = 5.25E+10
+		self.mass = 5.25E+9
 	# calculates the force on the ship due to blackHole
 	def calculateForce(self, shiplocation, shipmass):
 		# returns the x and y components of the gravitation force due to the blackhole on the ship
@@ -153,13 +157,6 @@ def generateInitialConfiguration( runParameters ):
 	# add starting info to the new kessel run
 	newKRun.updatePosition([x,y])
 	newKRun.updateVelocity([vmag*np.cos(vang), vmag*np.sin(vang)])
-	print(x)
-	print(y)
-	print(vmag)
-	print(vang)
-	print()
-	print(newKRun.pos)
-	print(newKRun.vel)
 
 	# set ship mass
 	newKRun.setMass(runParameters.shipMass)
