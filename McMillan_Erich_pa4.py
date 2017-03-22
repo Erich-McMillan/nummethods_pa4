@@ -29,8 +29,12 @@ class kesselRun:
 	# kesselRun constructor
 	def __init__(self):
 		self.pos = [-1,-1]
+		self.initpos = [-1,-1]
 		self.path = []
 		self.vel = [-1,-1]
+		self.initvel = [-1,-1]
+		self.initvmag = -1
+		self.initvang = -1
 		self.acc = [-1,-1]
 		self.time = 0
 		self.success = False
@@ -71,11 +75,12 @@ class kesselRun:
 		# check if force has exceeded specified max if so terminate run
 		self.terminated = (np.linalg.norm(forceonship) > runParameters.maxForce) if True else self.terminated
 		if(self.terminated):
-			 return
+			print("gravity exceeded max")
+			print(np.linalg.norm(forceonship))
+			return
 
 		# update acceleration
 		self.updateAcceleration(np.divide(forceonship, self.mass))
-
 		# update velocity
 		self.updateVelocity(np.add(self.vel, np.multiply(self.acc, runParameters.resolution)))
 
@@ -91,11 +96,35 @@ class kesselRun:
 		# print(self.pos[0])
 		# print((self.pos[0] < -10.0 or self.pos[0] > 10.0))
 		# check if ship is outside the bounds
+		# print(self.pos[0])
+		# print(self.pos[1][0])
 		self.terminated = (self.pos[0] < -10.0 or self.pos[0] > 10.0) if True else self.terminated
 		# print(self.terminated)
 		# check if run time has exceeded maxtime if so terminate run
 		# self.terminated = (self.time > runParameters.maxTime) if True else self.terminated
 		# print(self.terminated)
+	def plotKesselRun(self, filename, blackholes ):
+		# plots the points of the kessel run and the blackholes and writes to a filename.png for viewing
+		x = []
+		y = []
+		# outfile = open(".txt", "w")
+		print(self.path)
+
+		for p in self.path:
+			x.append(p[0])
+			y.append(p[1])
+			# outfile.write(str(p[0]))
+			# outfile.write("\t")
+			# outfile.write(str(p[1]))
+			# outfile.write("\n")
+
+
+		# print(x)
+		plt.plot(x, y, color = 'blue')
+
+		for b in blackholes:
+			plt.plot(b.pos[0], b.pos[1], color = 'red', marker = "H", ms = 5)
+		plt.savefig(filename, dpi=96);
 # contains the information about the blackhole each blackhole shall have its own object
 class blackHole:
 	# blackHole constructor
@@ -110,17 +139,25 @@ class blackHole:
 		# the function will return the x and y components of the gravitational force on the ship [fx,fy]
 
 		# find the vector between the ship and the blackhole pointing toward the blackhole
-		rvector = np.subtract(self.pos[0], shiplocation)
+		# print(self.pos)
+		# print(shiplocation)
+		rvector = np.subtract(self.pos, shiplocation)
 		# print(rvector)
 		rmagnitude = np.linalg.norm(rvector)
 
 		# determine force of gravity along each axis
 		# gravity = 6.67408E-11
-		gravity = 1
+		gravity = [1,1]
 		numerator = np.multiply(self.mass, shipmass)
 		numerator = np.multiply(numerator, gravity)
 		denominator = np.power(rmagnitude, 3)
 		gravityvector = np.multiply(rvector,  np.divide(numerator, denominator))
+		# print(self.mass)
+		# print(numerator)
+		# print(np.multiply(numerator, gravity))
+		# print(np.divide(numerator, denominator))
+		# print()
+		# print()
 		return gravityvector
 
 ##	Function declarations	##
@@ -140,8 +177,8 @@ def loadBlackHoles( filename ):
 
 	# load file info
 	for i in range(0,hX.size):
-		blackholes.append(blackHole([hX[i], hY[i]], hM[i]));
-
+		blackholes.append(blackHole([float(hX[i]), float(hY[i])], float(hM[i])));
+		# print(blackholes[-1].pos)
 	# clean-up/return
 	return blackholes
 def generateInitialConfiguration( runParameters ):
@@ -154,6 +191,7 @@ def generateInitialConfiguration( runParameters ):
 
 	# generate starting velocity
 	vmag = np.random.uniform(runParameters.minVel, runParameters.maxVel)
+	# note that the starting angle can be greater than pi or less than 0 but the distribution probability that this will occur is low. Not really sure why why Mayerich did not bound this as it will result in the ship flying away from the kessel field.
 	vang = np.random.normal(runParameters.avgVelAngle, runParameters.stdVelAngle)
 
 	# add starting info to the new kessel run
@@ -162,6 +200,10 @@ def generateInitialConfiguration( runParameters ):
 
 	# set ship mass
 	newKRun.setMass(runParameters.shipMass)
+	newKRun.initpos = [x,y]
+	newKRun.initvel = [vmag*np.cos(vang), vmag*np.sin(vang)]
+	newKRun.initvmag = vmag
+	newKRun.initvang = vang
 
 	# clean-up/return
 	return newKRun
@@ -185,31 +227,23 @@ def simulateKesselRun( blackholes, runParameters ):
 
 ## 	Main code				##
 runParameters = runParameters(minX = -5, maxX = 5, startY = -10, finalY = 10, avgVelAngle = math.pi/2.0,
-	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 5, resolution = .005, maxTime = 5, shipMass = 1)
+	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 4, resolution = .005, maxTime = 10, shipMass = 1)
 blackholes = loadBlackHoles("cluster1.mat")
-currKRun = simulateKesselRun(blackholes, runParameters)
-print()
-print()
-print(currKRun.terminated)
-print(currKRun.success)
+# currKRun = simulateKesselRun(blackholes, runParameters)
+# currKRun.plotKesselRun("output.png", blackholes)
+shortestKRun = kesselRun()
+shortestKRun.time = runParameters.maxTime
+longestKRun = kesselRun()
 
-x = []
-y = []
-outfile = open("output.txt", "w")
+for i in range(0, 10):
+	print(i)
+	currKRun = simulateKesselRun(blackholes, runParameters)
+	if currKRun.time > longestKRun.time and currKRun.success > 0 :
+		longestKRun = currKRun
+	if currKRun.time < shortestKRun.time and currKRun.success > 0 :
+		shortestKRun = currKRun
 
-for p in currKRun.path:
-	x.append(p[0])
-	y.append(p[1])
-	outfile.write(str(p[0]))
-	outfile.write("\t")
-	outfile.write(str(p[1]))
-	outfile.write("\n")
+shortestKRun.plotKesselRun("shortest.png", blackholes)
 
 
-# print(x)
-plt.plot(x, y, color = 'blue')
-
-for b in blackholes:
-	plt.plot(b.pos[0], b.pos[1], color = 'red', marker = "H", ms = 5)
-plt.savefig("output.png", dpi=96);
 # print(currKRun.path)
