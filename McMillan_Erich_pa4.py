@@ -67,10 +67,11 @@ class kesselRun:
 
 		# print(forceonship)
 		# print(np.linalg.norm(forceonship))
-		print((np.linalg.norm(forceonship) > runParameters.maxForce))
+		# print((np.linalg.norm(forceonship) > runParameters.maxForce))
 		# check if force has exceeded specified max if so terminate run
 		self.terminated = (np.linalg.norm(forceonship) > runParameters.maxForce) if True else self.terminated
-		print(self.terminated)
+		if(self.terminated):
+			 return
 
 		# update acceleration
 		self.updateAcceleration(np.divide(forceonship, self.mass))
@@ -100,8 +101,8 @@ class blackHole:
 	# blackHole constructor
 	def __init__(self, position, mass):
 		self.pos = position
-		# self.mass = mass
-		self.mass = 5.25E+9
+		self.mass = mass
+		#self.mass = 6E+9
 	# calculates the force on the ship due to blackHole
 	def calculateForce(self, shiplocation, shipmass):
 		# returns the x and y components of the gravitation force due to the blackhole on the ship
@@ -114,7 +115,8 @@ class blackHole:
 		rmagnitude = np.linalg.norm(rvector)
 
 		# determine force of gravity along each axis
-		gravity = 6.67408E-11
+		# gravity = 6.67408E-11
+		gravity = 1
 		numerator = np.multiply(self.mass, shipmass)
 		numerator = np.multiply(numerator, gravity)
 		denominator = np.power(rmagnitude, 3)
@@ -183,9 +185,11 @@ def simulateKesselRun( blackholes, runParameters ):
 
 ## 	Main code				##
 runParameters = runParameters(minX = -5, maxX = 5, startY = -10, finalY = 10, avgVelAngle = math.pi/2.0,
-	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 4, resolution = .005, maxTime = 5, shipMass = 5)
+	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 5, resolution = .005, maxTime = 5, shipMass = 1)
 blackholes = loadBlackHoles("cluster1.mat")
 currKRun = simulateKesselRun(blackholes, runParameters)
+print()
+print()
 print(currKRun.terminated)
 print(currKRun.success)
 
