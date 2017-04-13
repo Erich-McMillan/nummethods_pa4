@@ -9,12 +9,13 @@
 # a standard deviation of pi/4, the magnitude of the velocity is uniformly chosen between 2 and 5. Next
 # the program steps through the run iteratively using a small discrete time step and recalculating the
 # force/acceleration/velocity/position at each step. If the force exceeds 4[Newtons] the run is
-# terminated as unsuccessful. After a few thousand iterations the best and worst sucessful runs are
+# terminated as unsuccessful. After a few thousand iterations the best and worst successful runs are
 # plotted on a graph and saved to a .png in the current directory.
 
 ##	Import science modules	##
 import numpy as np
 import scipy.io as sio
+import scipy.spatial as sp
 import matplotlib.pyplot as plt
 import math as math
 from collections import namedtuple
@@ -28,14 +29,14 @@ runParameters = namedtuple("runParameters",
 class kesselRun:
 	# kesselRun constructor
 	def __init__(self):
-		self.pos = [-1,-1]
-		self.initpos = [-1,-1]
-		self.path = []
-		self.vel = [-1,-1]
-		self.initvel = [-1,-1]
+		self.pos = np.array([-1.0,-1.0])
+		self.initpos = np.array([-1.0,-1.0])
+		self.path = np.array([])
+		self.vel = np.array([-1.0,-1.0])
+		self.initvel = np.array([-1.0,-1.0])
 		self.initvmag = -1
 		self.initvang = -1
-		self.acc = [-1,-1]
+		self.acc = np.array([-1.0,-1.0])
 		self.time = 0
 		self.success = False
 		self.terminated = False
@@ -45,82 +46,71 @@ class kesselRun:
 	def setMass(self, mass):
 		self.mass = mass
 	def updatePosition(self, position):
-		self.path.append(position)
+		self.path = np.append(self.path, position)
 		self.pos = position
-		# print("position")
-		# print(self.pos)
 	def updateVelocity(self, velocity):
 		self.vel = velocity
-		# print("velocity")
-		# print(self.vel)
 	def updateAcceleration(self, acceleration):
 		self.acc = acceleration
-		# print("acceleration")
-		# print(self.acc)
 	def updateTime(self, deltat):
 		self.time += deltat
 	def stepRungeKuttaIntegration(self, blackholes, runParameters):
 		# Definition:
 
 		# declare variables
-		forceonship = [0,0]
+		forceonship = np.array([0.0,0.0])
 
 		# determine force upon the ship
 		for currentbh in blackholes:
 			forceonship = np.add(forceonship, currentbh.calculateForce(self.pos, self.mass))
 
-		# print(forceonship)
-		# print(np.linalg.norm(forceonship))
-		# print((np.linalg.norm(forceonship) > runParameters.maxForce))
-		# check if force has exceeded specified max if so terminate run
-		self.terminated = (np.linalg.norm(forceonship) > runParameters.maxForce) if True else self.terminated
-		if(self.terminated):
-			print("gravity exceeded max")
-			print(np.linalg.norm(forceonship))
-			return
-
 		# update acceleration
-		self.updateAcceleration(np.divide(forceonship, self.mass))
 		# update velocity
-		self.updateVelocity(np.add(self.vel, np.multiply(self.acc, runParameters.resolution)))
-
 		# update position
-		self.updatePosition(np.add(self.pos, np.multiply(self.vel, runParameters.resolution)))
-
 		# update time
+		self.updateAcceleration(np.divide(forceonship, self.mass))
+		self.updateVelocity(np.add(self.vel, np.multiply(self.acc, runParameters.resolution)))
+		self.updatePosition(np.add(self.pos, np.multiply(self.vel, runParameters.resolution)))
 		self.updateTime(runParameters.resolution)
 
-		# check if ship's y is greater than finalY if so then sucessful run
-		self.success = (self.pos[1] > runParameters.finalY) if True else self.sucess
 
-		# print(self.pos[0])
-		# print((self.pos[0] < -10.0 or self.pos[0] > 10.0))
-		# check if ship is outside the bounds
-		# print(self.pos[0])
-		# print(self.pos[1][0])
-		self.terminated = (self.pos[0] < -10.0 or self.pos[0] > 10.0) if True else self.terminated
-		# print(self.terminated)
 		# check if run time has exceeded maxtime if so terminate run
-		# self.terminated = (self.time > runParameters.maxTime) if True else self.terminated
-		# print(self.terminated)
+		# check if force has exceeded specified max if so terminate run
+		# check if ship is outside the bounds
+		if(self.time > runParameters.maxTime):
+			self.terminated = True
+			print("time exceeded max")
+			return
+		if(np.linalg.norm(forceonship) > runParameters.maxForce):
+			self.terminated = True
+			print("gravity exceeded max")
+			return
+		if(self.pos[0] < -10.0 or self.pos[0] > 10.0):
+			self.terminated = True
+			print("ship outside bounds")
+			return
+
+		# check if ship's y is greater than finalY if so then successful run
+		self.success = (self.pos[1] > runParameters.finalY) if True else self.success
+	def calculateDistance(self):
+
+		if(len(self.path) == 0):
+			return -1
+
+		numcol = int(len(self.path)/2)
+		reshapedpath = self.path.reshape(numcol,2)
+		distances = sp.distance.cdist(reshapedpath[0:-1,:], reshapedpath[1:,:], metric='euclidean')
+		ident = np.identity(distances.shape[0])
+		distance = np.sum(distances*ident)
+		return distance
 	def plotKesselRun(self, filename, blackholes ):
 		# plots the points of the kessel run and the blackholes and writes to a filename.png for viewing
-		x = []
-		y = []
-		# outfile = open(".txt", "w")
-		print(self.path)
+		plt.clf()
 
-		for p in self.path:
-			x.append(p[0])
-			y.append(p[1])
-			# outfile.write(str(p[0]))
-			# outfile.write("\t")
-			# outfile.write(str(p[1]))
-			# outfile.write("\n")
+		numcol = int(len(self.path)/2)
+		reshapedpath = self.path.reshape(numcol,2)
 
-
-		# print(x)
-		plt.plot(x, y, color = 'blue')
+		plt.plot(reshapedpath[:,0], reshapedpath[:,1] , color = 'blue')
 
 		for b in blackholes:
 			plt.plot(b.pos[0], b.pos[1], color = 'red', marker = "H", ms = 5)
@@ -139,6 +129,7 @@ class blackHole:
 		# the function will return the x and y components of the gravitational force on the ship [fx,fy]
 
 		# find the vector between the ship and the blackhole pointing toward the blackhole
+		# print("finding gravitational force")
 		# print(self.pos)
 		# print(shiplocation)
 		rvector = np.subtract(self.pos, shiplocation)
@@ -147,15 +138,17 @@ class blackHole:
 
 		# determine force of gravity along each axis
 		# gravity = 6.67408E-11
-		gravity = [1,1]
+		gravity = np.array([1,1])
 		numerator = np.multiply(self.mass, shipmass)
 		numerator = np.multiply(numerator, gravity)
 		denominator = np.power(rmagnitude, 3)
 		gravityvector = np.multiply(rvector,  np.divide(numerator, denominator))
 		# print(self.mass)
+		# print(rmagnitude)
 		# print(numerator)
 		# print(np.multiply(numerator, gravity))
 		# print(np.divide(numerator, denominator))
+		# print(gravityvector)
 		# print()
 		# print()
 		return gravityvector
@@ -176,8 +169,9 @@ def loadBlackHoles( filename ):
 	hM = bhinfo['hM']
 
 	# load file info
+	print("ONLY LOADING 1 BLACKHOLE")
 	for i in range(0,hX.size):
-		blackholes.append(blackHole([float(hX[i]), float(hY[i])], float(hM[i])));
+		blackholes.append(blackHole([np.float64(hX[i]), np.float64(hY[i])], np.float64(hM[i])));
 		# print(blackholes[-1].pos)
 	# clean-up/return
 	return blackholes
@@ -227,23 +221,24 @@ def simulateKesselRun( blackholes, runParameters ):
 
 ## 	Main code				##
 runParameters = runParameters(minX = -5, maxX = 5, startY = -10, finalY = 10, avgVelAngle = math.pi/2.0,
-	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 4, resolution = .005, maxTime = 10, shipMass = 1)
+	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 4, resolution = .1, maxTime = 10, shipMass = .1)
+
+print("Loading Blackholes")
 blackholes = loadBlackHoles("cluster1.mat")
-# currKRun = simulateKesselRun(blackholes, runParameters)
-# currKRun.plotKesselRun("output.png", blackholes)
+
 shortestKRun = kesselRun()
 shortestKRun.time = runParameters.maxTime
 longestKRun = kesselRun()
 
-for i in range(0, 10):
+print("Running simulation")
+for i in range(0, 1000):
 	print(i)
 	currKRun = simulateKesselRun(blackholes, runParameters)
-	if currKRun.time > longestKRun.time and currKRun.success > 0 :
+	if (currKRun.calculateDistance() > longestKRun.calculateDistance() or longestKRun.calculateDistance() == -1) and currKRun.success > 0 :
 		longestKRun = currKRun
-	if currKRun.time < shortestKRun.time and currKRun.success > 0 :
+	if (currKRun.calculateDistance() < shortestKRun.calculateDistance() or shortestKRun.calculateDistance() == -1) and currKRun.success > 0 :
 		shortestKRun = currKRun
 
+print("Plotting shortest and longest runs")
 shortestKRun.plotKesselRun("shortest.png", blackholes)
-
-
-# print(currKRun.path)
+longestKRun.plotKesselRun("longest.png", blackholes)
