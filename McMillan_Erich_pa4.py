@@ -221,7 +221,7 @@ def simulateKesselRun( blackholes, runParameters ):
 
 ## 	Main code				##
 runParameters = runParameters(minX = -5, maxX = 5, startY = -10, finalY = 10, avgVelAngle = math.pi/2.0,
-	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 4, resolution = .1, maxTime = 10, shipMass = .1)
+	stdVelAngle = math.pi/4.0, minVel = 2, maxVel = 5, maxForce = 4, resolution = .1, maxTime = 30, shipMass = .1)
 
 print("Loading Blackholes")
 blackholes = loadBlackHoles("cluster1.mat")
